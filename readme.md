@@ -1,11 +1,11 @@
-# Proejct Descriptoin: 
+# Project Descriptoin: 
 
 PS2Wiz is a PowerShell Host that displays output and reads input as a Windows Server 2012 Style Wizard. 
 
 By Keith Garner KeithGa@DeploymentLive.com
 
 
-#About
+# About
 Stop Spending time creating front end wizards to existing PowerShell scripts. 
 And don't use Powershell to create Windows Forms (Yuck). 
 
@@ -16,9 +16,9 @@ This tool will automatically generate a User Interface based on your script's in
 * Prompt and Prompt for Choice are displayed the appropriate input.
 * and more...
 
-#Video Demo
+# Video Demo
 
-[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](http://www.youtube.com/watch?v=45upZj2SIn4)
+(http://www.youtube.com/watch?v=45upZj2SIn4)
 
 
 # Licensing and Support
