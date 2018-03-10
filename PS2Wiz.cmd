@@ -1,0 +1,1 @@
+@Powershell -executionPolicy Unrestricted -File "%~dpn0.ps1" %*

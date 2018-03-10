@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Diagnostics;
 
-namespace PS2Wiz
+namespace PowerShell_Wizard_Host
 {
     static class Program
     {
@@ -14,9 +15,14 @@ namespace PS2Wiz
         [STAThread]
         static void Main()
         {
+            string LogPath = System.IO.Path.GetTempPath() + System.IO.Path.GetRandomFileName() + ".Log";
+            Trace.Listeners.Add(new TextWriterTraceListener(LogPath, "myListener"));
+            Trace.AutoFlush = true;
+            Trace.WriteLine("Logging started with file: " + LogPath);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            Application.Run(new PSWizHost());
+            Trace.Flush();
         }
     }
 }
