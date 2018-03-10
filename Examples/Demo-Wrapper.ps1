@@ -21,6 +21,6 @@ param(
         [parameter(mandatory=$true, position=0, ValueFromRemainingArguments=$true)][string] $Command
 )
 
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force -Scope Process
 
 invoke-expression -Command $Command
