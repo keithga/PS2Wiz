@@ -115,16 +115,17 @@ namespace PowerShell_Wizard_Host
                     // Special Case, if the user passed the -silent switch, then just close the form
                     foreach (var Arg in PowershellHostControl1.ParsedParameters)
                     {
-                        if (Arg.Name.ToString().ToLower() == "verbose")
-                            if ((bool)Arg.Value)
-                            {
-                                Trace.WriteLine("User passed in Verbose on the command line, do not auto-exit.", "Form");
-                                ButtonN.Enabled = true;
-                                ButtonN.Text = "Finished";
-                                ButtonN.Focus();
-                                return;
+                        if (Arg.Name != null)
+                            if (Arg.Name.ToString().ToLower() == "verbose")
+                                if ((bool)Arg.Value)
+                                {
+                                    Trace.WriteLine("User passed in Verbose on the command line, do not auto-exit.", "Form");
+                                    ButtonN.Enabled = true;
+                                    ButtonN.Text = "Finished";
+                                    ButtonN.Focus();
+                                    return;
 
-                            }
+                                }
                     }
 
                     Trace.WriteLine("All done, close the form.", "Form");
