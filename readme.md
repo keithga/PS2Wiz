@@ -4,6 +4,12 @@ PS2Wiz is a PowerShell Host that displays output and reads input as a Windows Se
 
 By Keith Garner KeithGa@DeploymentLive.com
 
+# Release
+
+Download here:
+
+https://github.com/keithga/PS2Wiz/archive/master.zip
+
 
 # About
 Stop Spending time creating front end wizards to existing PowerShell scripts. 
@@ -18,7 +24,7 @@ This tool will automatically generate a User Interface based on your script's in
 
 # Video Demo
 
-(http://www.youtube.com/watch?v=45upZj2SIn4)
+http://www.youtube.com/watch?v=45upZj2SIn4
 
 
 # Licensing and Support
