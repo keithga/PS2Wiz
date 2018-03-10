@@ -1178,7 +1178,7 @@ namespace PowerShell_Wizard_Host
                     }
                     else
                     {
-                        DebugWriteLine("CommandLine.AddArgument {0} ", Parameter, Val);
+                        DebugWriteLine("CommandLine.AddArgument {0} ",  Val);
                         powershell.AddArgument(Val);
                     }
                 }
