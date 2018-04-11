@@ -142,7 +142,15 @@ namespace PowerShell_Wizard_Host
         /// <param name="MaxChars"></param>
         public void ReadLine(char PasswordChar)
         {
+            bool UseEnterHandler = true;
             TextBox ReadBox = new TextBox() { PasswordChar = PasswordChar };
+            if ( MultiLineRequest != 0 )
+            {
+                ReadBox.Multiline = true;
+                ReadBox.Height = MultiLineRequest * 15;
+                UseEnterHandler = false;
+                MultiLineRequest = 0;
+            }
             ReadBox.Validating += new CancelEventHandler(delegate(object sender, CancelEventArgs e)
             {
                 DebugWriteLine("Validate the TextBox");
@@ -163,19 +171,29 @@ namespace PowerShell_Wizard_Host
 
             });
 
-            ReadBox.KeyPress += new KeyPressEventHandler(delegate(object sender, KeyPressEventArgs e)
+            if (UseEnterHandler)
             {
-                if (e.KeyChar == 13)
+                ReadBox.KeyPress += new KeyPressEventHandler(delegate (object sender, KeyPressEventArgs e)
                 {
-                    DebugWriteLine("User pressed ENTER!");
-                    this.OnNavigationNext(ReadBox);
-                }
-            });
+                    if (e.KeyChar == 13)
+                    {
+                        DebugWriteLine("User pressed ENTER!");
+                        this.OnNavigationNext(ReadBox);
+                    }
+                });
+            }
 
             this.AddControl(ReadBox);
             this.OnControlNavigation(ReadBox);
             ReadBox.Focus();
 
+        }
+
+        private int MultiLineRequest = 0;
+
+        public void ForceMultiLine ( int LineCount )
+        {
+            MultiLineRequest = LineCount;
         }
 
         public void ReadKey(ReadKeyOptions options)
@@ -1339,6 +1357,11 @@ namespace PowerShell_Wizard_Host
             ParentControl.WaitForResult(out result);
         }
 
+        public static void ForceMultilineOnReadLine( int Lines )
+        {
+            ParentControl.ForceMultiLine(Lines);
+
+        }
 
         public static void DisplayImage(string File)
         {

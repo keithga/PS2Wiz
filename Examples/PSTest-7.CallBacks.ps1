@@ -37,6 +37,17 @@ $Animation = "http://blogs.msdn.com/cfs-filesystemfile.ashx/__key/communityserve
 [PowerShell_Wizard_Host.PSHostCallBack]::DisplayHyperLink("Notepad","Notepad.exe","")
 [PowerShell_Wizard_Host.PSHostCallBack]::DisplayHyperLink("CodePlex","http://www.codeplex.com","")
 
+######################################################################
+
+Write-Host "Display a multi-line edit box"
+
+[PowerShell_Wizard_Host.PSHostCallBack]::ForceMultilineOnReadLine(20)
+
+(Read-Host).trim("`r`n") -split "`r`n" | 
+    %{ "List: $_" }
+
+######################################################################
+
 Write-Host "Press any key to continue..."
 $host.ui.RawUI.ReadKey() | out-null
 
