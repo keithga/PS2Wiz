@@ -36,8 +36,17 @@ namespace PowerShell_Wizard_Host
 #endif
 
             Trace.WriteLine("Load Powershell Script from embedded resource and start execution.", "Form");
-            Stream DataStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PowerShell_Wizard_Host.PSScript.ps1");
-            PowershellHostControl1.Script = (new StreamReader(DataStream)).ReadToEnd();
+
+            foreach (string ResourceName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+            {
+                if (ResourceName.ToLower().EndsWith(".ps1"))
+                {
+                    Trace.WriteLine("Resource names {0}", ResourceName);
+                    Stream DataStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
+                    PowershellHostControl1.Script += (new StreamReader(DataStream)).ReadToEnd();
+                }
+            }
+
             PowershellHostControl1.Start(Environment.GetCommandLineArgs());
 
         }
