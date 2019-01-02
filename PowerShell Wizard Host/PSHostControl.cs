@@ -1370,11 +1370,28 @@ namespace PowerShell_Wizard_Host
             SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File }));
         }
 
+        public static void DisplayImage(string File, int h)
+        {
+            Trace.Assert(ParentControl != null, "Parent Control not ready yet");
+            Trace.WriteLine(string.Format("DisplayImage({0})", File), "PSHostCallback");
+            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File, Height = h }));
+        }
+
         public static string GetFileFromResource(string File)
         {
             Trace.Assert(ParentControl != null, "Parent Control not ready yet");
-            Trace.WriteLine(string.Format("GetFileFromResource(PowerShell_Wizard_Host.{0})", File), "PSHostCallback");
-            return (new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream("PowerShell_Wizard_Host." + File))).ReadToEnd();
+
+            foreach (string ResourceName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+            {
+                if (ResourceName.ToLower().EndsWith(File.ToLower()))
+                {
+                    Trace.WriteLine("Resource names {0}", ResourceName);
+                    Stream DataStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
+                    return (new StreamReader(DataStream)).ReadToEnd();
+                }
+            }
+
+            return null; 
         }
 
         public static void DisplayHyperLink(string Text, string Link)
