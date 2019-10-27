@@ -1340,7 +1340,7 @@ namespace PowerShell_Wizard_Host
             };
             RichTextBox1.ContentsResized += new ContentsResizedEventHandler(delegate(object sender, ContentsResizedEventArgs e)
             {
-                ((RichTextBox)sender).Height = e.NewRectangle.Height;
+                ((RichTextBox)sender).Height = e.NewRectangle.Height + 1;
             });
 
             SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(RichTextBox1));
@@ -1367,14 +1367,14 @@ namespace PowerShell_Wizard_Host
         {
             Trace.Assert(ParentControl != null, "Parent Control not ready yet");
             Trace.WriteLine(string.Format("DisplayImage({0})", File), "PSHostCallback");
-            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File }));
+            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File, SizeMode = PictureBoxSizeMode.Zoom }));
         }
 
         public static void DisplayImage(string File, int h)
         {
             Trace.Assert(ParentControl != null, "Parent Control not ready yet");
             Trace.WriteLine(string.Format("DisplayImage({0})", File), "PSHostCallback");
-            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File, Height = h }));
+            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.AddControl(new PictureBox() { Dock = DockStyle.Top, ImageLocation = File, Height = h, SizeMode = PictureBoxSizeMode.Zoom }));
         }
 
         public static string GetFileFromResource(string File)
