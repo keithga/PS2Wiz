@@ -1391,8 +1391,27 @@ namespace PowerShell_Wizard_Host
                 }
             }
 
-            return null; 
+            return null;
         }
+
+        public static void GetFileFromResource(string File,string path)
+        {
+            Trace.Assert(ParentControl != null, "Parent Control not ready yet");
+
+            foreach (string ResourceName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+            {
+                if (ResourceName.ToLower().EndsWith(File.ToLower()))
+                {
+                    Trace.WriteLine("Resource names {0}", ResourceName);
+                    Stream DataStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
+                    var fileStream = System.IO.File.Create(path);
+                    DataStream.Seek(0, SeekOrigin.Begin);
+                    DataStream.CopyTo(fileStream);
+                    fileStream.Close();
+                }
+            }
+        }
+
 
         public static void DisplayHyperLink(string Text, string Link)
         {
