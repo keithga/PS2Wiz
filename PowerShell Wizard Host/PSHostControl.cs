@@ -93,18 +93,94 @@ namespace PowerShell_Wizard_Host
             powershell.BeginStop(null, null);
         }
 
-        public void Start(string[] Args)
+        public void Start(string commandline)
         {
-
             Trace.WriteLineIf(string.IsNullOrEmpty(this.Script), "Script is empty, nothing to do...");
 #if DEBUG
             DebugWriteLine("################################################################");
             DebugWriteLine(this.Script);
             DebugWriteLine("################################################################");
 #endif
-            DebugWriteLine("Start the script " + string.Join(" ", Args));
+            DebugWriteLine("Start the script " + commandline);
             powershell.AddScript(this.Script);
-            ParsePowerShellParmsFromArgs(Args);
+
+            //////////////////////////////////////////////////////////////
+            System.Management.Automation.Language.Token[] tokens;
+            System.Management.Automation.Language.ParseError[] errors;
+
+            var results = System.Management.Automation.Language.Parser.ParseInput("& " + commandline, out tokens, out errors).
+                FindAll(testAst => testAst is System.Management.Automation.Language.CommandAst, true);
+
+            System.Management.Automation.Language.CommandParameterAst Parameter = null;
+            foreach ( System.Management.Automation.Language.CommandAst item in results )
+            {
+                if ( item is System.Management.Automation.Language.CommandAst && item.InvocationOperator == System.Management.Automation.Language.TokenKind.Ampersand )
+                {
+                    DebugWriteLine("################################################################");
+                    DebugWriteLine("Found Command ");
+                    DebugWriteLine(item.ToString());
+                    DebugWriteLine("################################################################");
+
+                    for (int i = 1; i < item.CommandElements.Count; i++)
+                    {
+                        DebugWriteLine(item.CommandElements[i].GetType().ToString());
+
+                        if (item.CommandElements[i].GetType().ToString().EndsWith("CommandParameterAst"))
+                        {
+                            DebugWriteLine(item.CommandElements[i].ToString());
+
+                            if (Parameter != null)
+                            {
+                                DebugWriteLine("CommandLine.AddParameter {0} = true", Parameter);
+                                powershell.AddParameter(Parameter.ParameterName); // Flush
+                            }
+
+                            Parameter = (System.Management.Automation.Language.CommandParameterAst)item.CommandElements[i];
+
+                            if ( Parameter.Argument != null )
+                            {
+                                DebugWriteLine("CommandLine.AddParameter {0} = {1}", Parameter.ParameterName, Parameter.Argument.SafeGetValue().ToString());
+                                powershell.AddParameter(Parameter.ParameterName, Parameter.Argument.SafeGetValue());
+                                Parameter = null;
+                            }
+
+                        }
+                        else
+                        {
+                            DebugWriteLine(item.CommandElements[i].ToString());
+                            if ( Parameter != null )
+                            {
+                                DebugWriteLine("CommandLine.Parameter {0} = {1} ", Parameter.ParameterName, item.CommandElements[i].SafeGetValue().ToString());
+                                powershell.AddParameter(Parameter.ParameterName, item.CommandElements[i].SafeGetValue());
+                                Parameter = null;
+                            }
+                            else
+                            {
+                                DebugWriteLine("CommandLine.AddArgument {0} = true", item.CommandElements[i].SafeGetValue().ToString());
+                                powershell.AddArgument(item.CommandElements[i].SafeGetValue());
+                            }
+
+                        }
+                    }
+
+                }
+            }
+
+            if (Parameter != null)
+            {
+                powershell.AddParameter(Parameter.ParameterName); //Flush...
+
+            }
+
+            DebugWriteLine("################################################################");
+            DebugWriteLine("################################################################");
+
+            /*
+             * Test String for parse testing:
+             *  "one" 'two' three -verbose -foo "Bar" -cat @("sdfsdf","sdfsdf","sdfsdf") -hello:$False -digg:"Dug" $False $true
+             *  
+             *  Read: powershell.Commands.currentCommand.Parameters
+             */
 
             foreach (var Command in powershell.Commands.Commands)
             {
@@ -116,15 +192,13 @@ namespace PowerShell_Wizard_Host
             powershell.AddParameter("-stream");
 
             PSDataCollection<PSObject> output = new PSDataCollection<PSObject>();
-            output.DataAdded += new EventHandler<DataAddedEventArgs>(delegate(object sender, DataAddedEventArgs e)
+            output.DataAdded += new EventHandler<DataAddedEventArgs>(delegate (object sender, DataAddedEventArgs e)
             {
                 this.PSHost.UI.WriteLine(output[e.Index].ToString());
             });
 
             IAsyncResult asyncResult = powershell.BeginInvoke<PSObject, PSObject>(null, output);
         }
-
-
 
         #endregion
 
@@ -811,14 +885,14 @@ namespace PowerShell_Wizard_Host
                 MultiSelect = MultiSelect,
                 ColumnHeadersVisible = ShowHeader,
                 AllowUserToAddRows = false,
-                AutoSizeColumnsMode = ShowHeader?DataGridViewAutoSizeColumnsMode.None:DataGridViewAutoSizeColumnsMode.Fill
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill // ShowHeader ? DataGridViewAutoSizeColumnsMode.None:DataGridViewAutoSizeColumnsMode.Fill
             };
 
             GridView.DataSource = objects;
             //Special handling for Column Display
             for ( int i = 0; i < GridView.Columns.Count ; i++ )
             {
-                GridView.AutoResizeColumn(i, DataGridViewAutoSizeColumnMode.ColumnHeader);
+                GridView.AutoResizeColumn(i, DataGridViewAutoSizeColumnMode.Fill);
                 if (i >= 10)
                     GridView.Columns[i].Visible = false;  // Maximum of 10 Columns for Visibility
             }
@@ -1139,79 +1213,6 @@ namespace PowerShell_Wizard_Host
         {
             this.DebugWriteLine(string.Format(format, args));
         }
-
-        /// <summary>
-        /// Custom Code for processing the commandline from the host program.
-        /// Injects all arguments into the current Powershell Command as Parameters
-        /// </summary>
-        /// <param name="Args"></param>
-        private void ParsePowerShellParmsFromArgs(string[] Args)
-        {
-            string Parameter = null;
-            Regex MyRegEx = new Regex("^(?:/|-)([^/-: ]+)(?::?)([^:]*)$");
-            for (int i = 1; i < Args.Length; i++)
-            {
-                Match Match = MyRegEx.Match(Args[i]);
-                if (Match.Success && Match.Groups.Count == 3)
-                {
-                    // Found a PowerShell style command Line Argument
-
-                    if (Parameter != null)
-                    {
-                        DebugWriteLine("CommandLine.AddParameter {0} = true", Parameter);
-                        powershell.AddParameter(Parameter);
-                    }
-
-                    if (Match.Groups[2].Value.Trim() == "")
-                    {
-                        Parameter = Match.Groups[1].Value;
-                    }
-                    else if (Match.Groups[2].Value.ToUpper() == "$TRUE") // Special Case 
-                    {
-                        DebugWriteLine("CommandLine.AddParameter {0} = true", Match.Groups[1].Value);
-                        powershell.AddParameter(Match.Groups[1].Value, true);
-                        Parameter = null;
-                    }
-                    else if (Match.Groups[2].Value.ToUpper() == "$FALSE") // Special Case
-                    {
-                        DebugWriteLine("CommandLine.AddParameter {0} = true", Match.Groups[1].Value);
-                        powershell.AddParameter(Match.Groups[1].Value, false);
-                        Parameter = null;
-                    }
-                    else
-                    {
-                        DebugWriteLine("CommandLine.AddParameter {0} = {1}", Match.Groups[1].Value, Match.Groups[2].Value);
-                        powershell.AddParameter(Match.Groups[1].Value, Match.Groups[2].Value);
-                        Parameter = null;
-                    }
-                }
-                else
-                {
-                    string Val = Args[i].Trim().TrimEnd(new char[] { '\'', '\"' }).TrimStart(new char[] { '\'', '\"' });
-                    if (Parameter != null)
-                    {
-                        DebugWriteLine("CommandLine.AddParameter {0} = {1}", Parameter, Val);
-                        powershell.AddParameter(Parameter, Val);
-                        Parameter = null;
-                    }
-                    else
-                    {
-                        DebugWriteLine("CommandLine.AddArgument {0} ",  Val);
-                        powershell.AddArgument(Val);
-                    }
-                }
-
-            }
-
-            if (Parameter != null)
-            {
-                powershell.AddParameter(Parameter); //Flush...
-            }
-
-
-
-        }
-
 
         public void AddControl(System.Windows.Forms.Control NewControl)
         {

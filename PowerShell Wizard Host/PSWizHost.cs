@@ -47,7 +47,7 @@ namespace PowerShell_Wizard_Host
                 }
             }
 
-            PowershellHostControl1.Start(Environment.GetCommandLineArgs());
+            PowershellHostControl1.Start(Environment.CommandLine);
 
         }
 
