@@ -1,4 +1,5 @@
 ﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -302,6 +303,7 @@ namespace PowerShell_Wizard_Host
                         {
                             Trace.Write(".");
                             ((ProgressPanel)Item).Progress = record;
+                            ((ProgressPanel)Item).Focus();
                         }
                         return;
                     }
@@ -403,6 +405,9 @@ namespace PowerShell_Wizard_Host
 
                 DebugWriteLine("NewFieldDescription: Name:{0} Label:{1} Mandatory:{2} Type:{3} Default:[{4}] Attr: {5}",
                     FieldDesc.Name, FieldDesc.Label, FieldDesc.IsMandatory, FieldDesc.ParameterTypeFullName, FieldDesc.DefaultValue, FieldDesc.Attributes.ToString());
+
+                if (!string.IsNullOrEmpty(FieldDesc.HelpMessage))
+                    PromptPanel.AddControl(new GrowLabel(FieldDesc.HelpMessage));
 
                 switch (BaseType)
                 {
@@ -572,47 +577,6 @@ namespace PowerShell_Wizard_Host
 
                         break;
 
-                    case "System.String[]":
-
-                        if (!string.IsNullOrEmpty(FieldDesc.Label))
-                            PromptPanel.AddControl(new GrowLabel(FieldDesc.Label) { Margin = new Padding(0, 10, 0, 0) });
-
-                        ComboBox ReadCombo = new ComboBox();
-                        ReadCombo.Name = FieldDesc.Name;
-
-                        if (FieldDesc.DefaultValue != null)
-                            //if ( FieldDesc.DefaultValue.BaseObject.GetType().IsArray )
-                            foreach (var Item in (FieldDesc.DefaultValue.BaseObject as object[]))
-                                ReadCombo.Items.Add(Item.ToString());
-
-                        if (ReadCombo.Items.Count > 0)
-                            ReadCombo.Text = ReadCombo.Items[0].ToString();
-
-                        ReadCombo.Validating += new CancelEventHandler(delegate (object sender, CancelEventArgs e)
-                        {
-                            if (FieldDesc.IsMandatory && string.IsNullOrEmpty(((ComboBox)sender).Text))
-                            {
-                                ErrorProvider1.SetError((Control)sender, "Missing Text");
-                                e.Cancel = true;
-                                return;
-                            }
-                            try
-                            {
-                                ((ComboBox)sender).Tag = ((ComboBox)sender).Text;
-                            }
-                            catch (SystemException ex)
-                            {
-                                ErrorProvider1.SetError((Control)sender, ex.Message);
-                                e.Cancel = true;
-                            }
-                            if (!e.Cancel)
-                                ErrorProvider1.Clear();
-                        }
-                            );
-
-                        PromptPanel.AddControl(ReadCombo);
-                        break;
-
                     case "System.Guid":
                     case "System.DateTime":
                     case "System.SByte":
@@ -629,12 +593,22 @@ namespace PowerShell_Wizard_Host
                     case "System.UInt64":
                     case "System.UIntPtr":
                     case "System.String":
+                    case "System.String[]":
 
                         if (!string.IsNullOrEmpty(FieldDesc.Label))
                             PromptPanel.AddControl(new GrowLabel(FieldDesc.Label) { Margin = new Padding(0, 10, 0, 0) });
 
                         TextBox ReadBox = new TextBox();
                         ReadBox.Name = FieldDesc.Name;
+
+                        if ( BaseType.EndsWith("[]") ) 
+                        {
+                            ReadBox.Multiline = true;
+                            ReadBox.Height = 5 * 15;
+                            ReadBox.ScrollBars = ScrollBars.Vertical;
+                            // # UseEnterHandler = false;
+                        }
+
 
                         if (FieldDesc.DefaultValue != null)
                             if (!string.IsNullOrEmpty(FieldDesc.DefaultValue.BaseObject.ToString()))
@@ -650,7 +624,14 @@ namespace PowerShell_Wizard_Host
                             }
                             try
                             {
-                                ((TextBox)sender).Tag = TypeDescriptor.GetConverter(Type.GetType(BaseType)).ConvertFromInvariantString(((TextBox)sender).Text);
+                                if ( ((TextBox)sender).Multiline )
+                                {
+                                     ((TextBox)sender).Tag = ((TextBox)sender).Text.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
+                                }
+                                else
+                                {
+                                    ((TextBox)sender).Tag = TypeDescriptor.GetConverter(Type.GetType(BaseType)).ConvertFromInvariantString(((TextBox)sender).Text);
+                                }
                             }
                             catch (SystemException ex)
                             {
@@ -675,9 +656,6 @@ namespace PowerShell_Wizard_Host
                     default:
                         break;
                 }
-
-                if (!string.IsNullOrEmpty(FieldDesc.HelpMessage))
-                    PromptPanel.AddControl(new GrowLabel(FieldDesc.HelpMessage));
 
                 index++;
             }
@@ -890,24 +868,41 @@ namespace PowerShell_Wizard_Host
 
             GridView.DataSource = objects;
             //Special handling for Column Display
-            for ( int i = 0; i < GridView.Columns.Count ; i++ )
+            try
             {
-                GridView.AutoResizeColumn(i, DataGridViewAutoSizeColumnMode.Fill);
-                if (i >= 10)
-                    GridView.Columns[i].Visible = false;  // Maximum of 10 Columns for Visibility
+                for (int i = 0; i < GridView.Columns.Count; i++)
+                {
+                    GridView.AutoResizeColumn(i, DataGridViewAutoSizeColumnMode.Fill);
+                    if (i >= 10)
+                        GridView.Columns[i].Visible = false;  // Maximum of 10 Columns for Visibility
+                }
+            }
+            catch
+            {
+                File.AppendAllText(@"c:\windows\temp\OutGridView_throw.txt", "Throw in GridView Exception group 1");
+                DebugWriteLine("Throw in GridView Exception group 1!");
             }
             this.AddControl(GridView);
 
             // Calculate the Height of the control
             int h = ShowHeader ? GridView.ColumnHeadersHeight : 0;
-            foreach (DataGridViewRow Row in GridView.Rows)
-                h += Row.Height;
-            int w = 0;
-            foreach (DataGridViewColumn Col in GridView.Columns)
-                w += Col.Width;
-            if (w > this.Width)
-                h += System.Windows.Forms.SystemInformation.HorizontalScrollBarHeight;
-            GridView.Height = h + 2;
+
+            try
+            {
+                foreach (DataGridViewRow Row in GridView.Rows)
+                    h += Row.Height;
+                int w = 0;
+                foreach (DataGridViewColumn Col in GridView.Columns)
+                    w += Col.Width;
+                if (w > this.Width)
+                    h += System.Windows.Forms.SystemInformation.HorizontalScrollBarHeight;
+                GridView.Height = h + 2;
+            }
+            catch
+            {
+                File.AppendAllText(@"c:\windows\temp\OutGridView_throw.txt", "Throw in GridView Exception group 2");
+                DebugWriteLine("Throw in GridView Exception group 2!");
+            }
 
             if (ShouldWait)
                 this.OnControlNavigation(GridView, false);
@@ -1360,8 +1355,7 @@ namespace PowerShell_Wizard_Host
 
         public static void ForceMultilineOnReadLine( int Lines )
         {
-            ParentControl.ForceMultiLine(Lines);
-
+            SynchronizedInvoke.InvokeIfRequired(ParentControl, () => ParentControl.ForceMultiLine( Lines ));
         }
 
         public static void DisplayImage(string File)
